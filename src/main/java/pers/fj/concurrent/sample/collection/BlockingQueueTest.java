@@ -1,24 +1,29 @@
 package pers.fj.concurrent.sample.collection;
 
+
 import com.google.common.collect.Lists;
 
-import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Created by fang_j on 2020/08/20.
+ * Created by fang_j on 2020/12/28.
  */
-public class ForEachByStreamSample {
-    //TODO why not throw ConcurrentModificationException in use stream?
+public class BlockingQueueTest {
     public static void main(String[] args) {
-        AtomicReference<List<Long>> futures = new AtomicReference<>(Collections.synchronizedList(Lists.newArrayList()));
-
+        BlockingQueue<Long> queue = new LinkedBlockingDeque<>();
         new Thread(() -> {
-            while(!Thread.currentThread().isInterrupted()){
-                if (!futures.get().isEmpty()) {
-                    futures.getAndSet(Collections.synchronizedList(Lists.newArrayList())).forEach(System.out::println);
+            while (!Thread.currentThread().isInterrupted()) {
+                if (!queue.isEmpty()) {
+                    List<Long> values = Lists.newArrayList();
+                    queue.drainTo(values);
+                    Iterator<Long> iterator = values.iterator();
+                    while (iterator.hasNext()) {
+                        System.out.println(iterator.next());
+                    }
                 }
                 try {
                     Thread.sleep(5);
@@ -31,10 +36,10 @@ public class ForEachByStreamSample {
 
         AtomicLong counter = new AtomicLong();
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 2; i++) {
             new Thread(() -> {
                 while (true) {
-                    futures.get().add(counter.incrementAndGet());
+                    queue.offer(counter.incrementAndGet());
                     try {
                         Thread.sleep(1);
                     } catch (InterruptedException e) {

@@ -1,14 +1,15 @@
 package pers.fj.concurrent.sample.collection;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.junit.jupiter.api.Test;
 
-import java.util.ConcurrentModificationException;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.in;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
@@ -42,6 +43,7 @@ public class ConcurrentModificationTest {
         Iterator<Integer> iterator = integers.iterator();
         assertThrows(ConcurrentModificationException.class, () -> {
             while (iterator.hasNext()) {
+                iterator.next();
                 integers.remove(0);
             }
         });
@@ -53,9 +55,40 @@ public class ConcurrentModificationTest {
         Iterator<Integer> iterator = integers.iterator();
         assertThrows(ConcurrentModificationException.class, () -> {
             while (iterator.hasNext()) {
+                iterator.next();
                 integers.add(0);
             }
         });
+    }
+
+    @Test
+    public void whilstAddingDuringHashMapIterator_shouldThrowException1() {
+        Map<Integer, Integer> integers = new HashMap<>();
+        integers.put(1, 1);
+        integers.put(2, 2);
+        integers.put(3, 3);
+
+        Iterator<Map.Entry<Integer, Integer>> iterator = integers.entrySet().iterator();
+        assertThrows(ConcurrentModificationException.class, () -> {
+            while (iterator.hasNext()) {
+                iterator.next();
+                integers.put(0, 0);
+            }
+        });
+    }
+
+    @Test
+    public void whilstAddingDuringConcurrentHashMapIterator_shouldNotThrowException1() {
+        Map<Integer, Integer> integers = new ConcurrentHashMap<>();
+        integers.put(1, 1);
+        integers.put(2, 2);
+        integers.put(3, 3);
+
+        Iterator<Map.Entry<Integer, Integer>> iterator = integers.entrySet().iterator();
+        while (iterator.hasNext()) {
+            iterator.next();
+            integers.put(0, 0);
+        }
     }
 
     @Test
@@ -117,6 +150,4 @@ public class ConcurrentModificationTest {
                 .collect(toList());
         assertThat(collected).containsExactly(1, 3);
     }
-
-
 }
